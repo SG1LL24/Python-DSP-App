@@ -17,9 +17,11 @@ def boost(inp_wav, gain, file_type):
     wav_file.close()
 
     audio_data = np.frombuffer(data, dtype=np.int16)
+
     audio_fft = np.fft.fft(audio_data)
 
     boosted_audio_fft = audio_fft * gain
+
     boosted_audio = np.fft.ifft(boosted_audio_fft).real.astype(np.int16)
 
     outfile = wave.open("boost.wav", 'wb')
@@ -68,6 +70,7 @@ def fuzz(inp_wav, distortion_factor, file_type):
     params = wav_file.getparams()
     n_frames = params.nframes
     data = wav_file.readframes(n_frames)
+    wav_file.close()
 
     audio_data = np.frombuffer(data, dtype=np.int16)
 
@@ -117,8 +120,7 @@ def eq(inp_wav, cut_off_frequency, file_type):
     sample_width = wav_file.getsampwidth()
     n_channels = wav_file.getnchannels()
     n_frames = wav_file.getnframes()
-
-    data = wav_file.readframes(-1)  # Reading audio frames from file after 1000000 samples
+    data = wav_file.readframes(n_frames)  # Reading audio frames from file after 1000000 samples
     wav_file.close()
 
     channels = interpret_wav(data, n_frames, n_channels, sample_width, True)
@@ -126,7 +128,9 @@ def eq(inp_wav, cut_off_frequency, file_type):
     freq_ratio = cut_off_frequency / sample_rate
 
     window_size = int(math.sqrt(0.196201 + freq_ratio ** 2) / freq_ratio)
+
     cumulative_sum = np.cumsum(np.insert(channels[0], 0, 0))
+
     filtered = ((cumulative_sum[window_size:] - cumulative_sum[:-window_size]) / window_size).astype(channels.dtype)
 
     outfile = wave.open('eq.wav', "wb")
@@ -136,7 +140,6 @@ def eq(inp_wav, cut_off_frequency, file_type):
 
     if file_type != 'wav':
         sound = pydub.AudioSegment.from_wav("eq.wav")
-        # C:\\Users\\Simarbir G\\PycharmProjects\\DigitalSignalProcessing\\
         sound.export("eq." + file_type, format=file_type)
 
 #####################################
@@ -162,7 +165,6 @@ def schroeder_reverb(audio_data, sample_rate):
 
     comb_output = apply_comb_filter(audio_data, comb_delays, comb_decays)
 
-    # Normalize the output
     comb_output /= np.max(np.abs(comb_output))
 
     return comb_output
@@ -177,7 +179,6 @@ def reverb(inp_wav):
     audio_data = np.frombuffer(data, dtype=np.int16)
     wav_file.close()
 
-    # Apply Schroeder Reverb effect
     reverbed = schroeder_reverb(audio_data, sample_rate)
 
     outfile = wave.open('reverb.wav', "wb")
